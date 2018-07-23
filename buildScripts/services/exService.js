@@ -1,19 +1,12 @@
 import http from 'http';
-import exApi from '../api/aprooApi'
 
-let http = http();
-let exApi = exApi();
+let ExService = {
+  getBuyPrice: function (token, currency, exApi) {
+    let data = exApi.query('buy', token, currency);
+    //let data =  http.request(api);
+    //let price = await exApi.processResult('buyprice', data);
 
-let getBuyPrice = function (token, currency, exconfig, function(err) {
-
-    if (err) {
-        console.log(err);
+    return data;
     }
-    else {
-        let api = exApi.query('buy', token, currency);
-        let data = await http.request(api);
-        let price = await exApi.processResult('buyprice', data);
-
-        return price;
-    }
-});
+  }
+module.exports = ExService;

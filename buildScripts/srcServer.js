@@ -3,6 +3,7 @@ import open from 'open';
 import path from 'path'
 import webpack from 'webpack';
 import config from '../webpack.config.dev'
+import routes from './routes/index';
 
 const app = express();
 const port = 3000;
@@ -13,9 +14,7 @@ app.use(require('webpack-dev-middleware')(compiler, {
   publicPath: config.output.publicPath
 }));
 
-app.get('/', function(req, res){
-  res.sendFile(path.resolve(__dirname, '../src/index.html'));
-});
+app.use('/', routes);
 
 app.listen(port, function(err){
   if (err){
