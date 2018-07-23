@@ -1,0 +1,11 @@
+{
+  "name": "aporoomining",
+  "version": "0.0.1",
+  "description": "Mining agent for aporoo exchange (AT)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Victor Zhou",
+  "license": "ISC"
+}
