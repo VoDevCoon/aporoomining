@@ -1,14 +1,30 @@
 {
   "name": "aporoomining",
   "version": "0.0.1",
-  "description": "Mining agent for aporoo exchange (AT)",
+  "description": "Mining agent for token exchanges (default AT)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prestart": "babel-node buildScripts/startMessage.js",
+    "start": "babel-node buildScripts/srcServer.js"
   },
   "author": "Victor Zhou",
-  "license": "ISC",
-  "dependencies": {
-    "express": "^4.16.3"
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "babel-cli": "6.26.0",
+    "babel-core": "6.26.3",
+    "babel-loader": "7.1.5",
+    "babel-preset-latest": "6.24.1",
+    "babel-register": "^6.26.0",
+    "chalk": "^2.4.1",
+    "express": "4.16.3",
+    "eslint": "3.4.0",
+    "eslint-plugin-import": "1.14.0",
+    "open": "0.0.5",
+    "numeral": "^2.0.6",
+    "webpack": "1.13.2",
+    "webpack-dev-middleware": "1.6.1",
+    "webpack-hot-middleware": "2.12.2",
+    "webpack-md5-hash": "0.0.5"
   }
 }
