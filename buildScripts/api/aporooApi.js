@@ -1,20 +1,39 @@
 import socket from 'ws';
 import chalk from 'chalk'
+import { debug } from 'util';
 
 const ws = new socket('wss://ws.aporoo.com/websocket');
 //const ws = new socket('wss://stream.binance.com:9443/ws/zileth@depth20');
-class AporooApi {
-  query (action, token, currency){
 
-    ws.on('open', function(){
-        ws.send(JSON.stringify({"dataType":"482_ENTRUST_ADD_AT_ETH","dataSize":50,"action":"ADD"}  ));
-        console.log(chalk.yellow("open"));
-    });
+let getOrderBook = function (token, currency, dataSize = 5) {
+  debug('in api');
 
-    ws.on('message',function(data){
-      console.log('received: ' + data);
+  ws.on('open', function () {
+    console.log(chalk.green("------- ws connected -------"));
+    ws.send(JSON.stringify({ "dataType": "482_ENTRUST_ADD_AT_ETH", "dataSize": dataSize, "action": "ADD" }));
+
+  });
+
+  return new Promise(function (resolve, reject) {
+
+    ws.on('message', function (data) {
+      if (data) {
+        let rawOrderbook = JSON.parse(data);
+
+        if (rawOrderbook[0][0] === 'AE') {
+
+          let orderbook = new Object();
+          orderbook.asks = rawOrderbook[0][4].asks.reverse();
+          orderbook.bids = rawOrderbook[0][5].bids;
+
+          //console.log(orderbook.asks);
+
+          resolve(orderbook);
+        }
+      }
     });
-  }
+  });
+
 }
 
-module.exports = AporooApi;
+module.exports.getOrderBook = getOrderBook;
