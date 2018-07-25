@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "prestart": "babel-node buildScripts/startMessage.js",
-    "start": "babel-node buildScripts/srcServer.js"
+    "start": "babel-node buildScripts/api/aporooApi.js"
   },
   "author": "Victor Zhou",
   "license": "MIT",
