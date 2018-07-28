@@ -1,19 +1,49 @@
 class ExService {
-  constructor(exapi){
-    this.exapi = exapi;
+  constructor(api) {
+    this.api = api;
+    this.currentOrderbooks = new Map();
   }
 
-  getBestBuyPrice (token, currency){
-    console.log('in service');
-    let a = new Object()
-    this.exapi.getOrderBook(token, currency, 10).then(result=>{
-       a = result.asks[0];
-    }).then(()=>{return a;});
+  updateOrderbook(token, currency) {
+    try {
+      this.api.getOrderBook(token, currency).then(result => {
+        this.currentOrderbooks.set(result.pair, result);
+        //console.log(this.currentOrderbooks);
+      });
+    } catch (error) {
+      console.error(`Error updating orderbook: ${error}`);
+    }
   }
 
-  async getBestSellPrice (token, currency){
-    let orderbook = await this.exapi.getOrderBook(token, currency, 10);
-    return orderbook.ask[0];
+  getBestBuyPrice(token, currency) {
+
+    let bestBuy = {};
+    let pair = `${token}_${currency}`
+    let orderbook = this.currentOrderbooks.get(pair);
+
+    if (orderbook) {
+      bestBuy.price = orderbook.asks[0][0];
+      bestBuy.depth = orderbook.asks[0][1];
+      bestBuy.ts = orderbook.ts;
+    }
+
+    return bestBuy;
+  }
+
+  getBestSellPrice(token, currency) {
+
+    let bestSell = {};
+    let pair = `${token}_${currency}`
+    let orderbook = this.currentOrderbooks.get(pair);
+
+    if (orderbook) {
+      bestSell.price = orderbook.bids[0][0];
+      bestSell.depth = orderbook.bids[0][1];
+      bestSell.ts = orderbook.ts;
+    }
+
+    return bestSell;
   }
 }
+
 module.exports = ExService;
