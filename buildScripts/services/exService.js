@@ -10,7 +10,6 @@ class ExService {
     try {
       this.api.getOrderBook(token, currency).then(result => {
         this.currentOrderbooks.set(result.pair, result);
-        //console.log(this.currentOrderbooks);
       });
     } catch (error) {
       console.error(`Error updating orderbook: ${error}`);
@@ -22,8 +21,6 @@ class ExService {
     let bestBuy = {};
     let pair = `${token}_${currency}`
     let orderbook = this.currentOrderbooks.get(pair);
-
-    //console.log(orderbook);
 
     if (orderbook) {
       bestBuy.price = orderbook.asks[0][0];
@@ -47,6 +44,11 @@ class ExService {
     }
 
     return bestSell;
+  }
+
+  placeOrder(token, currency, type, price, amount){
+    //this.api.getUserInfo();
+    this.api.placeOrder(token, currency, type, price, amount);
   }
 }
 
