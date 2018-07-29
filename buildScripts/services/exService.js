@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+
 class ExService {
   constructor(api) {
     this.api = api;
@@ -20,6 +22,8 @@ class ExService {
     let bestBuy = {};
     let pair = `${token}_${currency}`
     let orderbook = this.currentOrderbooks.get(pair);
+
+    //console.log(orderbook);
 
     if (orderbook) {
       bestBuy.price = orderbook.asks[0][0];

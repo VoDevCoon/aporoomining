@@ -1,3 +1,14 @@
+// order book
+// { asks:
+//    [ [ '0.00009', '6352.85' ],
+//               ...
+//      [ '0.001', '197.51' ] ],
+//   bids:
+//    [ [ '0.000087', '51974.14' ],
+//               ...
+//      [ '0.000001', '1287719.05' ] ],
+//   ts: 2018-07-28T05:26:50.253Z,
+//   pair: 'AT_ETH' }
 import socket from 'ws';
 import chalk from 'chalk'
 import { debug, error } from 'util';
@@ -54,4 +65,9 @@ let getOrderBook = function (token, currency, dataSize = 50) {
 
 }
 
+let placeOrder = function (token, currency, type, amount){
+
+}
+
 module.exports.getOrderBook = getOrderBook;
+module.exports.placeOrder = placeOrder;
