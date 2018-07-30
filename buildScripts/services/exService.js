@@ -4,13 +4,14 @@ class ExService {
   constructor(api) {
     this.api = api;
     this.currentOrderbooks = new Map();
+    this.latestOrder = null;
   }
 
   updateOrderbook(token, currency) {
     try {
       this.api.getOrderBook(token, currency).then(result => {
         this.currentOrderbooks.set(result.pair, result);
-      });
+      }).catch((err)=>{console.log(err.statusCode);});
     } catch (error) {
       console.error(`Error updating orderbook: ${error}`);
     }
@@ -47,8 +48,10 @@ class ExService {
   }
 
   placeOrder(token, currency, type, price, amount){
-    //this.api.getUserInfo();
-    this.api.placeOrder(token, currency, type, price, amount);
+
+    this.api.placeOrder(token, currency, type, price, amount).then((result)=>{
+      this.latestOrder = result;
+    });
   }
 }
 

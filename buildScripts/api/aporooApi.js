@@ -1,6 +1,7 @@
 import socket from 'ws';
 import crypto from 'crypto';
 import request from 'request-promise';
+import _ from 'underscore';
 import { aporoo } from '../config/api';
 
 //const ws = new socket('wss://stream.binance.com:9443/ws/zileth@depth20');
@@ -13,7 +14,7 @@ const wsUrl = 'wss://ws.aporoo.com/websocket';
 const httpsAccountBaseUrl = "https://www.aporoo.com";
 const httpsMarketBaseUrl = "https://ws.aporoo.com";
 
-console.log("123");
+
 
 let markets = new Map();
 
@@ -43,14 +44,18 @@ let getOrderBook = function (token, currency, dataSize = 50) {
       console.log('no trading pair.');
   }
 
-  ws.on('open', function () {
+  ws.on('open', () => {
     ws.send(JSON.stringify(payload));
 
   });
 
-  return new Promise(function (resolve, reject) {
+  ws.on('error', (err) => {
+    console.log(err);
+  });
 
-    ws.on('message', function (data) {
+  return new Promise((resolve, reject) => {
+
+    ws.on('message', (data) => {
       if (data) {
         let rawOrderbook = JSON.parse(data);
 
@@ -80,7 +85,7 @@ let getUserInfo = function () {
     method: "POST",
     uri: httpsAccountBaseUrl + "/exchange/user/controller/website/usercontroller/getuserinfo",
     json: true,
-    headers: getHeader()
+    headers: getPostHeader()
   }).then((res) => { console.log(res) });
 
 }
@@ -98,19 +103,75 @@ let placeOrder = function (token, currency, type, price, amount) {
       "price": price
     }
 
-    request({
-      method: "POST",
-      uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/addEntrust",
-      body: params,
-      json: true,
-      headers: getHeader(params)
-    }).then((res) => { console.log(res) });
+    //console.log(params);
+    return new Promise((resolve, reject) => {
+      request({
+        method: "POST",
+        uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/addEntrust",
+        body: params,
+        json: true,
+        headers: getPostHeader(params)
+      }).then((res) => {
+        getOrderById(market, res.datas.entrustId).then(
+          (result) => {
+            let order = {
+              id : result.datas.entrustId,
+              amount : result.datas.amount,
+              type : result.datas.entrustType,
+              price : result.datas.price,
+              completeAmount : result.datas.completeAmount,
+              market : result.datas.marketId
+            }
+            resolve(order);
 
+            console.log(`new order placed => id:${order.id}
+                                            | market:${order.market}
+                                            | type:${order.type}
+                                            | price:${order.price}
+                                            | amount:${order.amount}
+                                            | complete:${order.completeAmount}`);
+          }
+        );
+      }).catch((err) => { reject(err.statusCode); });
+    });
   }
-
 }
 
-function getHeader(params) {
+let getOrderById = function (marketId, orderId) {
+
+  let params = {
+    marketId: marketId,
+    entrustId: orderId
+  }
+  return new Promise((resolve, reject) => {
+    request({
+      method: "GET",
+      uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/getEntrustById",
+      qs: params,
+      json: true,
+      headers: getGetHeader(params)
+    }).then((res) => {
+      resolve(res);
+    }).catch((err) => { reject(err.statusCode); });
+  });
+}
+
+function getPostHeader(params) {
+  let header = {};
+  let ts = Date.now();
+  header.apiid = key;
+  header.Timestamp = ts;
+
+  if (params) {
+    header.Sign = encryptMD5(key + ts + JSON.stringify(params) + secret);
+  } else {
+    header.Sign = encryptMD5(key + ts + secret);
+  }
+
+  return header;
+}
+
+function getGetHeader(params) {
   let header = {};
   let ts = Date.now();
   header.apiid = key;
@@ -118,7 +179,16 @@ function getHeader(params) {
 
   if (params) {
 
-    header.Sign = encryptMD5(key + ts + JSON.stringify(params) + secret);
+    let sortedKeys = _.sortBy(Object.keys(params), (key) => { return key; });
+    let sortedParams = "";
+
+    _.each(sortedKeys, (key) => {
+      sortedParams = sortedParams.concat(key).concat(params[key]);
+    });
+
+    //console.log(sortedParams);
+
+    header.Sign = encryptMD5(key + ts + sortedParams + secret);
   } else {
     header.Sign = encryptMD5(key + ts + secret);
   }
@@ -134,6 +204,7 @@ function encryptMD5(str) {
 module.exports.getOrderBook = getOrderBook;
 module.exports.getUserInfo = getUserInfo;
 module.exports.placeOrder = placeOrder;
+module.exports.getOrderById = getOrderById;
 
 // order book
 // { asks:
