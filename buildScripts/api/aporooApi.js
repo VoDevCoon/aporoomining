@@ -34,20 +34,24 @@ let getOrderBook = function (token, currency, dataSize = 50) {
 
   let ws = new socket(wsUrl);
   let tradingPair = `${token}_${currency}`;
-  let payload = { "dataType": "484_ENTRUST_ADD_BTC_USDT", "dataSize": dataSize, "action": "ADD" }; //default to btc_usdt market
+  let market = markets.get(tradingPair);
+  let payload = {};
+  if (market) {
+    switch (tradingPair.toUpperCase()) {
+      case "AT_ETH":
+        payload = { "dataType": `${market}_ENTRUST_ADD_${tradingPair}`, "dataSize": dataSize, "action": "ADD" };
+        break;
+      case "AT_BTC":
+        payload = { "dataType": `${market}_ENTRUST_ADD_${tradingPair}`, "dataSize": dataSize, "action": "ADD" };
+        break;
+      default:
+        console.log('no trading pair.');
+    }
 
-  switch (tradingPair.toUpperCase()) {
-    case "AT_ETH":
-      payload = { "dataType": "482_ENTRUST_ADD_AT_ETH", "dataSize": dataSize, "action": "ADD" };
-      break;
-    default:
-      console.log('no trading pair.');
+    ws.on('open', () => {
+      ws.send(JSON.stringify(payload));
+    });
   }
-
-  ws.on('open', () => {
-    ws.send(JSON.stringify(payload));
-
-  });
 
   ws.on('error', (err) => {
     console.log(err);
@@ -61,10 +65,10 @@ let getOrderBook = function (token, currency, dataSize = 50) {
 
         if (rawOrderbook[0][0] === 'AE') {
 
-          let orderbook = new Object();
+          let orderbook = {};
           orderbook.asks = rawOrderbook[0][4].asks.reverse();
           orderbook.bids = rawOrderbook[0][5].bids;
-          orderbook.ts = new Date();
+          orderbook.ts = Date.now();
           orderbook.pair = `${token}_${currency}`;
 
           resolve(orderbook);
@@ -112,24 +116,20 @@ let placeOrder = function (token, currency, type, price, amount) {
         json: true,
         headers: getPostHeader(params)
       }).then((res) => {
-        getOrderById(market, res.datas.entrustId).then(
+        getOrderById(token, currency, res.datas.entrustId).then(
           (result) => {
+            //console.log(result.datas);
             let order = {
-              id : result.datas.entrustId,
-              amount : result.datas.amount,
-              type : result.datas.entrustType,
-              price : result.datas.price,
-              completeAmount : result.datas.completeAmount,
-              market : result.datas.marketId
+              id: result.datas.entrustId,
+              amount: result.datas.amount,
+              type: result.datas.entrustType,
+              price: result.datas.price,
+              completeAmount: result.datas.completeAmount,
+              market: result.datas.marketId
             }
             resolve(order);
-
-            console.log(`new order placed => id:${order.id}
-                                            | market:${order.market}
-                                            | type:${order.type}
-                                            | price:${order.price}
-                                            | amount:${order.amount}
-                                            | complete:${order.completeAmount}`);
+            //console.log("-- new order placed --");
+            console.log(order);
           }
         );
       }).catch((err) => { reject(err.statusCode); });
@@ -137,7 +137,9 @@ let placeOrder = function (token, currency, type, price, amount) {
   }
 }
 
-let getOrderById = function (marketId, orderId) {
+let getOrderById = function (token, currency, orderId) {
+
+  let marketId = markets.get(`${token}_${currency}`);
 
   let params = {
     marketId: marketId,

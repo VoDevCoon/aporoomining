@@ -6,57 +6,78 @@ import chalk from '../../node_modules/chalk';
 
 const router = express.Router();
 const ex = new exservice(aporooApi);
-let AgressiveTrading = false;
+let tradePair = { token: 'AT', currency: 'BTC' };
+let precision = 0.00000001;
 
-setInterval(() => { ex.updateOrderbook('AT', 'ETH') }, 500); //update orderbook for latest bid/ask price
+setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 2000); //update orderbook for latest bid/ask price
 setInterval(() => {
 
-  let precision = 0.000001;
-  let sellPrice1 = ex.getBestBuyPrice('AT', 'ETH');
-  let buyPrice1 = ex.getBestSellPrice('AT', 'ETH');
+  let sellPrice1 = ex.getBestBuyPrice(tradePair.token, tradePair.currency);
+  let buyPrice1 = ex.getBestSellPrice(tradePair.token, tradePair.currency);
   let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
-  let tsGap = sellPrice1.ts - buyPrice1.ts >= 0 ? sellPrice1.ts - Date().now : buyPrice1 - Date().now; //time lapse from the time orderbook was last updated
-  let amount = Math.floor(Math.random() * (80 - 30) + 30); //set random order amount within range 30~80
+  let currentTs = Date.now();
+  let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
+  let amount = Math.floor(Math.random() * (1800 - 1600) + 1600); //set random order amount within range 30~80
+  let AggresiveTrading = true; //trade for token commission, same buy/sell price
 
-  if (priceGap >= 2 && tsGap < 1000) {
-    //trade for token commission
-    let tradePrice = (sellPrice1.price / precision - 1) * precision;
-    ex.placeOrder('AT', 'ETH', 0, tradePrice, amount);
-    ex.placeOrder('AT', 'ETH', 1, tradePrice, amount);
-  } else if (AgressiveTrading) {
-    //trade for unlocking token with loss
-    ex.placeOrder('AT', 'ETH', 0, buyPrice1.price, amount);
-    ex.placeOrder('AT', 'ETH', 1, sellPrice1.price, amount);
-  } else {
-    //trade for profit
-    let latestOrder = ex.latestOrder;
+  let latestOrder = ex.latestOrder;
 
-    if (!latestOrder) {
+  if (tsGap < 1000) { //only when latest price is within 1 second then proceed, otherwise there's issue updating current orderbooks
+    if (AggresiveTrading) {
+      if (priceGap > 2) { //only if there's depth safe net then trade
+        let tradePrice = (sellPrice1.price / precision - 1) * precision;
+        ex.placeOrder(tradePair.token, tradePair.currency, 0, tradePrice, amount);
+        setTimeout(() => { ex.placeOrder(tradePair.token, tradePair.currency, 1, tradePrice, amount) }, 500);
+      }
+      else {
 
-      console.log("place initial order");
-      ex.placeOrder('AT', 'ETH', 0, sellPrice1.price, 1);
-    }
-    else {
+        console.log("no price gap");
+      }
+    } else {
+      //TODO:
+      //if no buy/sell order, place order
+      //else
+      //update sell/buy order
+      //params: buy/sell boundary, latest buy/sell price and amount, current buy/sell order price and amount
+      //to update sell: if latest sell price < sell order, update to new smaller sell price untill boudnary
+      //if same and latest sell amount = left order amount, move up price
+      //to update buy: if latest buy price  > buy order, update to new bigger buy price untill boundary
+      //if same and latest buy amount = left order amount, move down price
 
-      ex.updateLatestOrder();
 
-      let orderAmountLeft = ~~latestOrder.amount - ~~latestOrder.completedAmount;
-      if (orderAmountLeft > 0 ) {
-        console.log(`order ${latestOrder.id} not completed, order amount left: ${orderAmountLeft}`);
-      } else {
-        if (latestOrder.type == 0) {
-          console.log(`sell order ${latestOrder.id} is completed, place new buy order`);
-          ex.placeOrder('AT', 'ETH', 1, buyPrice1.price, 1);
+      //trade for profit
+
+      let testamount = 1000;
+      if (!latestOrder) {
+
+        console.log("place initial order");
+        ex.placeOrder(tradePair.token, tradePair.currency, 0, sellPrice1.price, testamount);
+      }
+      else {
+
+
+        //console.log(latestOrder);
+        ex.updateLatestOrder(tradePair.token, tradePair.currency, latestOrder.id);
+
+        let orderAmountLeft = ~~latestOrder.amount - ~~latestOrder.completeAmount;
+
+        let lastPrice = latestOrder.price;
+        if (orderAmountLeft > 0) {
+          console.log(`order ${latestOrder.id} not completed, order amount left: ${orderAmountLeft}`);
         } else {
-
-          console.log(`buy order ${latestOrder.id} is completed, place new sell order`);
-          ex.placeOrder('AT', 'ETH', 0, sellPrice1.price, 1);
+          if (latestOrder.type == 0) {
+            console.log(`sell order ${latestOrder.id} is completed, place new buy order, buy@${lastPrice}`);
+            ex.placeOrder(tradePair.token, tradePair.currency, 1, lastPrice, testamount);
+          } else {
+            console.log(`buy order ${latestOrder.id} is completed, place new sell order, sell@${lastSellPrice}`);
+            ex.placeOrder(tradePair.token, tradePair.currency, 0, lastPrice, testamount);
+            //ex.placeOrder('AT', 'ETH', 0, sellPrice1.price, testamount);
+          }
         }
       }
     }
   }
-
-}, 6000);
+}, 10000);
 
 
 module.exports = router;

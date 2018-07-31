@@ -51,7 +51,15 @@ class ExService {
 
     this.api.placeOrder(token, currency, type, price, amount).then((result)=>{
       this.latestOrder = result;
+      console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}, ${result.id}`);
     });
+  }
+
+  updateLatestOrder(token, currency, orderId){
+    this.api.getOrderById(token, currency, orderId).then((result)=>{
+      //console.log(result);
+      this.latestOrder.completeAmount = result.datas.completeAmount;
+    }).catch((err)=>{console.log(err)});
   }
 }
 
