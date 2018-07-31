@@ -17,17 +17,22 @@ setInterval(() => {
   let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
   let currentTs = Date.now();
   let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
-  let amount = Math.floor(Math.random() * (1800 - 1600) + 1600); //set random order amount within range 30~80
+  let amount = Math.floor(Math.random() * (1500 - 1400) + 1400); //set random order amount within range 30~80
   let AggresiveTrading = true; //trade for token commission, same buy/sell price
+  let tradeDirection = 1; //sets to buy first or sell first for aggresive tradeing
 
   let latestOrder = ex.latestOrder;
 
   if (tsGap < 1000) { //only when latest price is within 1 second then proceed, otherwise there's issue updating current orderbooks
     if (AggresiveTrading) {
       if (priceGap > 2) { //only if there's depth safe net then trade
-        let tradePrice = (sellPrice1.price / precision - 1) * precision;
-        ex.placeOrder(tradePair.token, tradePair.currency, 0, tradePrice, amount);
-        setTimeout(() => { ex.placeOrder(tradePair.token, tradePair.currency, 1, tradePrice, amount) }, 500);
+
+      let tradePrice = tradeDirection == 0?(sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
+
+        ex.placeOrder(tradePair.token, tradePair.currency, tradeDirection, tradePrice, amount);
+        setTimeout(() => {
+          ex.placeOrder(tradePair.token, tradePair.currency, Math.abs(tradeDirection - 1), tradePrice, amount)
+        }, 300);
       }
       else {
 
@@ -77,7 +82,7 @@ setInterval(() => {
       }
     }
   }
-}, 10000);
+}, 5000);
 
 
 module.exports = router;

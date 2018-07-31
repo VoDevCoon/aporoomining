@@ -48,7 +48,7 @@ class ExService {
   }
 
   placeOrder(token, currency, type, price, amount){
-
+    //console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}`);
     this.api.placeOrder(token, currency, type, price, amount).then((result)=>{
       this.latestOrder = result;
       console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}, ${result.id}`);

@@ -129,7 +129,7 @@ let placeOrder = function (token, currency, type, price, amount) {
             }
             resolve(order);
             //console.log("-- new order placed --");
-            console.log(order);
+            //console.log(order);
           }
         );
       }).catch((err) => { reject(err.statusCode); });
