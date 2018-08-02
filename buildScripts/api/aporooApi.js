@@ -29,6 +29,44 @@ request({
   });
 });
 
+let updateOrderBook = function (token, currency) {
+
+  let tradingPair = `${token}_${currency}`;
+  let marketId = markets.get(tradingPair);
+
+  let params = {
+    marketId: marketId,
+    marketName: tradingPair
+  }
+
+  return request({
+      method: "GET",
+      uri: httpsMarketBaseUrl + "/api/data/v1/entrusts",
+      qs: params,
+      json: true,
+      headers: getGetHeader(params)
+    }).then((data)=>{
+      if (data) {
+        let rawOrderbook = data.datas;
+
+        if (rawOrderbook) {
+
+          let orderbook = {};
+          orderbook.asks = rawOrderbook.asks.reverse();
+          orderbook.bids = rawOrderbook.bids;
+          orderbook.ts = Date.now();//rawOrderbook.timestamp;
+          orderbook.pair = `${token}_${currency}`;
+
+          //console.log(`orderbook: asks ${orderbook.asks[0]} bids ${orderbook.bids[0]} ts ${orderbook.ts}`);
+          return orderbook;
+        }
+        else {
+          console.log('no data');
+        }
+      }
+    });
+}
+
 
 let getOrderBook = function (token, currency, dataSize = 50) {
 
@@ -204,6 +242,7 @@ function encryptMD5(str) {
 
 
 module.exports.getOrderBook = getOrderBook;
+module.exports.updateOrderBook = updateOrderBook;
 module.exports.getUserInfo = getUserInfo;
 module.exports.placeOrder = placeOrder;
 module.exports.getOrderById = getOrderById;

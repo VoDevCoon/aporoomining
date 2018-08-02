@@ -24,10 +24,6 @@ app.listen(port, function(err){
   }
 });
 
-// let exService = exService();
-// let token = "at";
-// let currency = "eth";
-
 
 
 

@@ -9,7 +9,7 @@ const ex = new exservice(aporooApi);
 let tradePair = { token: 'AT', currency: 'BTC' };
 let precision = 0.00000001;
 
-setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 2000); //update orderbook for latest bid/ask price
+setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 500); //update orderbook for latest bid/ask price
 setInterval(() => {
 
   let sellPrice1 = ex.getBestBuyPrice(tradePair.token, tradePair.currency);
@@ -17,7 +17,7 @@ setInterval(() => {
   let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
   let currentTs = Date.now();
   let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
-  let amount = Math.floor(Math.random() * (1500 - 1400) + 1400); //set random order amount within range 30~80
+  let amount = Math.floor(Math.random() * (1000 - 900) + 900); //set random order amount within range 30~80
   let AggresiveTrading = true; //trade for token commission, same buy/sell price
   let tradeDirection = 1; //sets to buy first or sell first for aggresive tradeing
 
@@ -32,12 +32,13 @@ setInterval(() => {
         ex.placeOrder(tradePair.token, tradePair.currency, tradeDirection, tradePrice, amount);
         setTimeout(() => {
           ex.placeOrder(tradePair.token, tradePair.currency, Math.abs(tradeDirection - 1), tradePrice, amount)
-        }, 300);
+        }, 500);
       }
       else {
 
         console.log("no price gap");
       }
+
     } else {
       //TODO:
       //if no buy/sell order, place order
@@ -82,7 +83,6 @@ setInterval(() => {
       }
     }
   }
-}, 5000);
-
+}, 3000);
 
 module.exports = router;

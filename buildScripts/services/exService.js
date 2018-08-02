@@ -8,13 +8,17 @@ class ExService {
   }
 
   updateOrderbook(token, currency) {
-    try {
-      this.api.getOrderBook(token, currency).then(result => {
-        this.currentOrderbooks.set(result.pair, result);
-      }).catch((err)=>{console.log(err.statusCode);});
-    } catch (error) {
-      console.error(`Error updating orderbook: ${error}`);
-    }
+    this.api.updateOrderBook(token, currency).then((result)=>{
+      this.currentOrderbooks.set(result.pair, result);
+      //console.log(this.currentOrderbooks);
+    });
+    // try {
+    //   this.api.getOrderBook(token, currency).then(result => {
+    //     this.currentOrderbooks.set(result.pair, result);
+    //   }).catch((err)=>{console.log(err.statusCode);});
+    // } catch (error) {
+    //   console.error(`Error updating orderbook: ${error}`);
+    // }
   }
 
   getBestBuyPrice(token, currency) {
