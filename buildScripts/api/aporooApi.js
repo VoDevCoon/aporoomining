@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import request from 'request-promise';
 import _ from 'underscore';
 import { aporoo } from '../config/api';
+import chalk from '../../node_modules/chalk';
 
 //const ws = new socket('wss://stream.binance.com:9443/ws/zileth@depth20');
 //let marketList = new Map('AT_ETH');
@@ -14,10 +15,10 @@ const wsUrl = 'wss://ws.aporoo.com/websocket';
 const httpsAccountBaseUrl = "https://www.aporoo.com";
 const httpsMarketBaseUrl = "https://ws.aporoo.com";
 
-
-
 let markets = new Map();
+let currencyList = new Map();
 
+//retrieve all market info
 request({
   method: "GET",
   uri: httpsAccountBaseUrl + "/exchange/config/controller/website/marketcontroller/getByWebId",
@@ -29,7 +30,57 @@ request({
   });
 });
 
-let updateOrderBook = function (token, currency) {
+//retrieve all currency info
+request({
+  method: "POST",
+  uri: httpsAccountBaseUrl + "/exchange/config/controller/website/currencycontroller/getCurrencyList",
+  json: true
+}).then((res) => {
+  let data = res.datas;
+  data.forEach(currency => {
+    let _currency = {
+      currencyName: currency.name.toUpperCase(),
+      currencyId: currency.currencyId,
+      precision: currency.defaultDecimal
+    };
+    //console.log(currencyList)
+    currencyList.set(~~_currency.currencyId, _currency);
+  });
+  //console.log(currencyList);
+});
+
+let getCurrentFunds = function () {
+
+  let params = {
+    "pageSize": 30,
+    "pageNum": 1
+  }
+
+  return request({
+    method: "POST",
+    uri: httpsAccountBaseUrl + "/exchange/fund/controller/website/fundcontroller/findbypage",
+    body: params,
+    json: true,
+    headers: getPostHeader(params)
+  }).then((data) => {
+
+    let currentFunds = new Map();
+    data.datas.list.forEach((fund) => {
+
+      let currencyName = currencyList.get(fund.currencyTypeId).currencyName;
+      let _fund = {
+        currencyName: currencyName,
+        amount: fund.amount,
+        freeze: fund.freeze
+      };
+      currentFunds.set(_fund.currencyName, _fund);
+    });
+
+    return currentFunds;
+  }).catch(err => { console.log(err) });
+}
+
+let getOrderBook = function (token, currency) {
 
   let tradingPair = `${token}_${currency}`;
   let marketId = markets.get(tradingPair);
@@ -40,85 +91,31 @@ let updateOrderBook = function (token, currency) {
   }
 
   return request({
-      method: "GET",
-      uri: httpsMarketBaseUrl + "/api/data/v1/entrusts",
-      qs: params,
-      json: true,
-      headers: getGetHeader(params)
-    }).then((data)=>{
-      if (data) {
-        let rawOrderbook = data.datas;
+    method: "GET",
+    uri: httpsMarketBaseUrl + "/api/data/v1/entrusts",
+    qs: params,
+    json: true,
+    headers: getGetHeader(params)
+  }).then((data) => {
+    if (data) {
+      let rawOrderbook = data.datas;
 
-        if (rawOrderbook) {
+      if (rawOrderbook) {
 
-          let orderbook = {};
-          orderbook.asks = rawOrderbook.asks.reverse();
-          orderbook.bids = rawOrderbook.bids;
-          orderbook.ts = Date.now();//rawOrderbook.timestamp;
-          orderbook.pair = `${token}_${currency}`;
+        let orderbook = {};
+        orderbook.asks = rawOrderbook.asks.reverse();
+        orderbook.bids = rawOrderbook.bids;
+        orderbook.ts = Date.now();//rawOrderbook.timestamp;
+        orderbook.pair = `${token}_${currency}`;
 
-          //console.log(`orderbook: asks ${orderbook.asks[0]} bids ${orderbook.bids[0]} ts ${orderbook.ts}`);
-          return orderbook;
-        }
-        else {
-          console.log('no data');
-        }
+        //console.log(`orderbook: asks ${orderbook.asks[0]} bids ${orderbook.bids[0]} ts ${orderbook.ts}`);
+        return orderbook;
       }
-    });
-}
-
-
-let getOrderBook = function (token, currency, dataSize = 50) {
-
-  let ws = new socket(wsUrl);
-  let tradingPair = `${token}_${currency}`;
-  let market = markets.get(tradingPair);
-  let payload = {};
-  if (market) {
-    switch (tradingPair.toUpperCase()) {
-      case "AT_ETH":
-        payload = { "dataType": `${market}_ENTRUST_ADD_${tradingPair}`, "dataSize": dataSize, "action": "ADD" };
-        break;
-      case "AT_BTC":
-        payload = { "dataType": `${market}_ENTRUST_ADD_${tradingPair}`, "dataSize": dataSize, "action": "ADD" };
-        break;
-      default:
-        console.log('no trading pair.');
+      else {
+        console.log('no data');
+      }
     }
-
-    ws.on('open', () => {
-      ws.send(JSON.stringify(payload));
-    });
-  }
-
-  ws.on('error', (err) => {
-    console.log(err);
   });
-
-  return new Promise((resolve, reject) => {
-
-    ws.on('message', (data) => {
-      if (data) {
-        let rawOrderbook = JSON.parse(data);
-
-        if (rawOrderbook[0][0] === 'AE') {
-
-          let orderbook = {};
-          orderbook.asks = rawOrderbook[0][4].asks.reverse();
-          orderbook.bids = rawOrderbook[0][5].bids;
-          orderbook.ts = Date.now();
-          orderbook.pair = `${token}_${currency}`;
-
-          resolve(orderbook);
-          ws = null;
-        }
-        else {
-          reject(new Error('received data is in wrong format'));
-        }
-      }
-    });
-  });
-
 }
 
 let getUserInfo = function () {
@@ -145,33 +142,47 @@ let placeOrder = function (token, currency, type, price, amount) {
       "price": price
     }
 
-    //console.log(params);
-    return new Promise((resolve, reject) => {
-      request({
-        method: "POST",
-        uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/addEntrust",
-        body: params,
-        json: true,
-        headers: getPostHeader(params)
-      }).then((res) => {
-        getOrderById(token, currency, res.datas.entrustId).then(
-          (result) => {
-            //console.log(result.datas);
-            let order = {
-              id: result.datas.entrustId,
-              amount: result.datas.amount,
-              type: result.datas.entrustType,
-              price: result.datas.price,
-              completeAmount: result.datas.completeAmount,
-              market: result.datas.marketId
-            }
-            resolve(order);
-            //console.log("-- new order placed --");
-            //console.log(order);
-          }
-        );
-      }).catch((err) => { reject(err.statusCode); });
-    });
+    return request({
+      method: "POST",
+      uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/addEntrust",
+      body: params,
+      json: true,
+      headers: getPostHeader(params)
+    }).then((res) => {
+      return res.datas;
+    }).catch((err) => { console.log(err.statusCode); });
+  }
+}
+
+let getOutstandingOrders = function (token, currency) {
+  if (markets.size > 0) {
+
+    let market = markets.get(`${token}_${currency}`);
+    let params = {
+      "marketId": market
+    }
+
+    return request({
+      method: "GET",
+      uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/getUserEntrustRecordFromCache",
+      qs: params,
+      json: true,
+      headers: getGetHeader(params)
+    }).then((res) => {
+      if (res.datas && res.datas.length > 0) {
+        let orders = [];
+        res.datas.forEach((order) => {
+          orders.push({
+            orderId: order.entrustId,
+            createTime: order.createTime
+          })
+        });
+        //console.log(orders);
+        return orders;
+      } else {
+        console.log(chalk.green("No outstanding orders."));
+      }
+    }).catch((err) => { console.log(err) });
   }
 }
 
@@ -192,8 +203,47 @@ let getOrderById = function (token, currency, orderId) {
       headers: getGetHeader(params)
     }).then((res) => {
       resolve(res);
+
+      // getOrderById(token, currency, res.datas.entrustId).then(
+      //   (result) => {
+      //     let order = {
+      //       id: result.datas.entrustId,
+      //       amount: result.datas.amount,
+      //       type: result.datas.entrustType,
+      //       price: result.datas.price,
+      //       completeAmount: result.datas.completeAmount,
+      //       market: result.datas.marketId
+      //     }
+      //     resolve(order);
+      //   }
+      // );
     }).catch((err) => { reject(err.statusCode); });
   });
+}
+
+let cancelOrderById = function (token, currency, orderId){
+  if (markets.size > 0) {
+
+    let market = markets.get(`${token}_${currency}`);
+    let params = {
+      "entrustId": orderId,
+      "marketId": market
+    }
+
+    return request({
+      method: "POST",
+      uri: httpsAccountBaseUrl + "/exchange/entrust/controller/website/EntrustController/cancelEntrust",
+      body: params,
+      json: true,
+      headers: getPostHeader(params)
+    }).then((res) => {
+      if(res.resMsg.code == 1){
+        console.log(chalk.red(`order ${orderId} cancelled`));
+      }else{
+        console.log(chalk.yellow(`There's error cancelling order ${orderId}`));
+      }
+    }).catch((err) => { console.log(err.statusCode); });
+  }
 }
 
 function getPostHeader(params) {
@@ -240,12 +290,13 @@ function encryptMD5(str) {
   return crypto.createHash('MD5').update(str).digest("hex");
 }
 
-
 module.exports.getOrderBook = getOrderBook;
-module.exports.updateOrderBook = updateOrderBook;
 module.exports.getUserInfo = getUserInfo;
+module.exports.getCurrentFunds = getCurrentFunds;
+module.exports.getOutstandingOrders = getOutstandingOrders;
 module.exports.placeOrder = placeOrder;
 module.exports.getOrderById = getOrderById;
+module.exports.cancelOrderById = cancelOrderById
 
 // order book
 // { asks:
@@ -256,5 +307,5 @@ module.exports.getOrderById = getOrderById;
 //    [ [ '0.000087', '51974.14' ],
 //               ...
 //      [ '0.000001', '1287719.05' ] ],
-//   ts: 2018-07-28T05:26:50.253Z,
+//   ts: ,
 //   pair: 'AT_ETH' }

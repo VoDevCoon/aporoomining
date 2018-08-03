@@ -7,9 +7,28 @@ import chalk from '../../node_modules/chalk';
 const router = express.Router();
 const ex = new exservice(aporooApi);
 let tradePair = { token: 'AT', currency: 'BTC' };
+let availableToken = 0;
+let availableCurrency = 0;
 let precision = 0.00000001;
 
-setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 500); //update orderbook for latest bid/ask price
+setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 800); //update orderbook for latest bid/ask price
+setInterval(()=>{
+  ex.getOutstandingOrders(tradePair.token, tradePair.currency);
+
+  //console.log(ex.outstandingOrders);
+  if(ex.outstandingOrders && ex.outstandingOrders.length > 0){
+    ex.outstandingOrders.forEach(order => {
+      if(Date.now() - order.createTime  > 3000){
+        ex.cancelOrder(tradePair.token, tradePair.currency, order.orderId);
+      }
+    });
+  }
+}, 3000)
+// setInterval(() => {
+//   ex.getFundBySymbol(tradePair.token).then((result) => { availableToken = result.amount; });
+//   ex.getFundBySymbol(tradePair.currency).then((result) => { availableCurrency = result.amount });
+// }, 10000); //check available trading funds
+
 setInterval(() => {
 
   let sellPrice1 = ex.getBestBuyPrice(tradePair.token, tradePair.currency);
@@ -17,7 +36,7 @@ setInterval(() => {
   let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
   let currentTs = Date.now();
   let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
-  let amount = Math.floor(Math.random() * (1000 - 900) + 900); //set random order amount within range 30~80
+  let amount = Math.floor(Math.random() * (280 - 260) + 260); //set random order amount within range 30~80
   let AggresiveTrading = true; //trade for token commission, same buy/sell price
   let tradeDirection = 1; //sets to buy first or sell first for aggresive tradeing
 
@@ -27,12 +46,25 @@ setInterval(() => {
     if (AggresiveTrading) {
       if (priceGap > 2) { //only if there's depth safe net then trade
 
-      let tradePrice = tradeDirection == 0?(sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
+        let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
 
-        ex.placeOrder(tradePair.token, tradePair.currency, tradeDirection, tradePrice, amount);
-        setTimeout(() => {
-          ex.placeOrder(tradePair.token, tradePair.currency, Math.abs(tradeDirection - 1), tradePrice, amount)
-        }, 500);
+        // if (availableToken > 0 && availableCurrency > 0) {
+
+        //   let maxPurchasibleToken = availableCurrency / tradePrice;
+        //   amount = availableToken < maxPurchasibleToken ? Math.floor(availableToken) : Math.floor(maxPurchasibleToken);
+
+        //   console.log(`available token: ${availableToken} | max purchasible token:${maxPurchasibleToken} `)
+        // }
+
+        if (amount > 0) {
+          ex.placeOrder(tradePair.token, tradePair.currency, tradeDirection, tradePrice, amount);
+          setTimeout(() => {
+            ex.placeOrder(tradePair.token, tradePair.currency, Math.abs(tradeDirection - 1), tradePrice, amount)
+          }, 500);
+        }else{
+          console.log("No valid trade amount available");
+        }
+
       }
       else {
 
@@ -83,6 +115,6 @@ setInterval(() => {
       }
     }
   }
-}, 3000);
+}, 5000);
 
 module.exports = router;

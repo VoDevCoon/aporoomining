@@ -5,20 +5,20 @@ class ExService {
     this.api = api;
     this.currentOrderbooks = new Map();
     this.latestOrder = null;
+    this.outstandingOrders = null;
   }
 
   updateOrderbook(token, currency) {
-    this.api.updateOrderBook(token, currency).then((result)=>{
+    this.api.getOrderBook(token, currency).then((result)=>{
       this.currentOrderbooks.set(result.pair, result);
       //console.log(this.currentOrderbooks);
-    });
-    // try {
-    //   this.api.getOrderBook(token, currency).then(result => {
-    //     this.currentOrderbooks.set(result.pair, result);
-    //   }).catch((err)=>{console.log(err.statusCode);});
-    // } catch (error) {
-    //   console.error(`Error updating orderbook: ${error}`);
-    // }
+    }).catch((err)=>{console.log(`updateorderbook ${err}`)});
+  }
+
+  getFundBySymbol(token){
+    return this.api.getCurrentFunds().then((result)=>{
+      return result.get(token);
+    }).catch((err)=>{console.log(`getfundbysymbol ${err}`)});
   }
 
   getBestBuyPrice(token, currency) {
@@ -51,19 +51,30 @@ class ExService {
     return bestSell;
   }
 
+  getOutstandingOrders (token, currency){
+    this.api.getOutstandingOrders(token, currency).then((result)=>{
+      this.outstandingOrders = result;
+    }).catch((err)=>{console.log(`getoutstandingorder ${err}`)});
+  }
+
   placeOrder(token, currency, type, price, amount){
-    //console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}`);
-    this.api.placeOrder(token, currency, type, price, amount).then((result)=>{
-      this.latestOrder = result;
-      console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}, ${result.id}`);
-    });
+
+    this.api.placeOrder(token, currency, type, price, amount).then((res)=>{
+      console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}, ${res.entrustId}`);
+    }).catch((err)=>{console.log(`placeorder ${err}`)});
+  }
+
+  cancelOrder(token, currency, orderId){
+    this.api.cancelOrderById(token, currency, orderId).then((result)=>{
+      //console.log(result);
+    }).catch((err)=>{console.log(`cancelorder ${err}`)});
   }
 
   updateLatestOrder(token, currency, orderId){
     this.api.getOrderById(token, currency, orderId).then((result)=>{
       //console.log(result);
       this.latestOrder.completeAmount = result.datas.completeAmount;
-    }).catch((err)=>{console.log(err)});
+    }).catch((err)=>{console.log(JSON.parse(err.error));});
   }
 }
 
