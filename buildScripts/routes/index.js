@@ -36,9 +36,9 @@ setInterval(() => {
   let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
   let currentTs = Date.now();
   let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
-  let amount = Math.floor(Math.random() * (280 - 260) + 260); //set random order amount within range 30~80
+  let amount = 1;//Math.floor(Math.random() * (555 - 548) + 548); //set random order amount within range 30~80
   let AggresiveTrading = true; //trade for token commission, same buy/sell price
-  let tradeDirection = 1; //sets to buy first or sell first for aggresive tradeing
+  let tradeDirection = 0; //sets to buy first or sell first for aggresive tradeing
 
   let latestOrder = ex.latestOrder;
 
@@ -46,7 +46,7 @@ setInterval(() => {
     if (AggresiveTrading) {
       if (priceGap > 2) { //only if there's depth safe net then trade
 
-        let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
+        let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 45) * precision : (buyPrice1.price / precision + 1) * precision;
 
         // if (availableToken > 0 && availableCurrency > 0) {
 
