@@ -28,6 +28,8 @@ request({
   data.forEach(market => {
     markets.set(market.name.toUpperCase(), market.marketId);
   });
+
+  //console.log(markets);
 });
 
 //retrieve all currency info
@@ -149,13 +151,13 @@ let placeOrder = function (token, currency, type, price, amount) {
       json: true,
       headers: getPostHeader(params)
     }).then((res) => {
+      //console.log(res);
       return res.datas;
     }).catch((err) => { console.log(err.statusCode); });
   }
 }
 
 let getOutstandingOrders = function (token, currency) {
-  if (markets.size > 0) {
 
     let market = markets.get(`${token}_${currency}`);
     let params = {
@@ -177,13 +179,11 @@ let getOutstandingOrders = function (token, currency) {
             createTime: order.createTime
           })
         });
-        //console.log(orders);
         return orders;
       } else {
         console.log(chalk.green("No outstanding orders."));
       }
     }).catch((err) => { console.log(err) });
-  }
 }
 
 let getOrderById = function (token, currency, orderId) {
@@ -221,7 +221,7 @@ let getOrderById = function (token, currency, orderId) {
   });
 }
 
-let cancelOrderById = function (token, currency, orderId){
+let cancelOrderById = function (token, currency, orderId) {
   if (markets.size > 0) {
 
     let market = markets.get(`${token}_${currency}`);
@@ -237,9 +237,9 @@ let cancelOrderById = function (token, currency, orderId){
       json: true,
       headers: getPostHeader(params)
     }).then((res) => {
-      if(res.resMsg.code == 1){
+      if (res.resMsg.code == 1) {
         console.log(chalk.red(`order ${orderId} cancelled`));
-      }else{
+      } else {
         console.log(chalk.yellow(`There's error cancelling order ${orderId}`));
       }
     }).catch((err) => { console.log(err.statusCode); });

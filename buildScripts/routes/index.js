@@ -11,8 +11,10 @@ let availableToken = 0;
 let availableCurrency = 0;
 let precision = 0.00000001;
 
-setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 800); //update orderbook for latest bid/ask price
+//setInterval(() => { ex.updateOrderbook(tradePair.token, tradePair.currency) }, 800); //update orderbook for latest bid/ask price
+
 setInterval(()=>{
+
   ex.getOutstandingOrders(tradePair.token, tradePair.currency);
 
   //console.log(ex.outstandingOrders);
@@ -24,12 +26,66 @@ setInterval(()=>{
     });
   }
 }, 3000)
+
 // setInterval(() => {
 //   ex.getFundBySymbol(tradePair.token).then((result) => { availableToken = result.amount; });
 //   ex.getFundBySymbol(tradePair.currency).then((result) => { availableCurrency = result.amount });
 // }, 10000); //check available trading funds
 
 setInterval(() => {
+  ex.getOrderbookRT(tradePair.token, tradePair.currency).then((orderbook) => {
+    if (orderbook) {
+
+      let buyPrice1 = {};
+      buyPrice1.price = orderbook.bids[0][0];
+      buyPrice1.depth = orderbook.bids[0][1];
+      buyPrice1.ts = orderbook.ts;
+
+
+      let sellPrice1 = {};
+      sellPrice1.price = orderbook.asks[0][0];
+      sellPrice1.depth = orderbook.asks[0][1];
+      sellPrice1.ts = orderbook.ts;
+
+      //console.log("sell: "+sellPrice1.price + "buy: "+buyPrice1.price);
+
+      let priceGap = sellPrice1.price / precision - buyPrice1.price / precision;
+      let currentTs = Date.now();
+      let tsGap = currentTs - sellPrice1.ts; //time lapse from the time orderbook was last updated
+      let amount = Math.floor(Math.random() * (100 - 90) + 90); //set random order amount within range 30~80
+      let AggresiveTrading = true; //trade for token commission, same buy/sell price
+      let tradeDirection = 1; //sets to buy first or sell first for aggresive tradeing 0:sell 1:buy
+
+      if (tsGap < 1000) { //only when latest price is within 1 second then proceed, otherwise there's issue updating current orderbooks
+        if (AggresiveTrading) {
+          if (priceGap > 2) { //only if there's depth safe net then trade
+
+            let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
+            //use middle price
+            //let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - Math.floor(priceGap/2)) * precision : (buyPrice1.price / precision + Math.floor(priceGap/2)) * precision;
+
+            if (amount > 0) {
+              ex.placeOrder(tradePair.token, tradePair.currency, tradeDirection, tradePrice, amount);
+              setTimeout(() => {
+                ex.placeOrder(tradePair.token, tradePair.currency, Math.abs(tradeDirection - 1), tradePrice, amount)
+              }, 100);
+            } else {
+              console.log("No valid trade amount available");
+            }
+
+          }
+          else {
+
+            console.log("no price gap");
+          }
+
+        }
+      }
+    }
+  });
+}, 1500);
+
+/*setInterval(() => {
 
   let sellPrice1 = ex.getBestBuyPrice(tradePair.token, tradePair.currency);
   let buyPrice1 = ex.getBestSellPrice(tradePair.token, tradePair.currency);
@@ -46,7 +102,7 @@ setInterval(() => {
     if (AggresiveTrading) {
       if (priceGap > 2) { //only if there's depth safe net then trade
 
-        let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 45) * precision : (buyPrice1.price / precision + 1) * precision;
+        let tradePrice = tradeDirection == 0 ? (sellPrice1.price / precision - 1) * precision : (buyPrice1.price / precision + 1) * precision;
 
         // if (availableToken > 0 && availableCurrency > 0) {
 
@@ -116,5 +172,5 @@ setInterval(() => {
     }
   }
 }, 5000);
-
+*/
 module.exports = router;
