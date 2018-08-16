@@ -8,6 +8,23 @@ class ExService {
     this.outstandingOrders = null;
   }
 
+  init() {
+    return new Promise((resolve,reject) => {
+      this.api.commitInit.then(results => {
+        console.log("in");
+        let initComplete = true;
+        results.forEach(result => {
+          result.success
+          ? console.log(chalk.green('Success: ' + result.action))
+          : console.log(chalk.red('Failed: ' + result.action));
+          initComplete = initComplete || result.success;
+        });
+
+        resolve(initComplete);
+      }).catch(err => reject('Error: ' + err));
+    });
+  }
+
   updateOrderbook(token, currency) {
     this.api.getOrderBook(token, currency).then((result) => {
       this.currentOrderbooks.set(result.pair, result);
@@ -21,7 +38,7 @@ class ExService {
     }).catch((err) => { console.log(`getfundbysymbol ${err}`) });
   }
 
-  getOrderbookRT(token, currency){
+  getOrderbookRT(token, currency) {
     return this.api.getOrderBook(token, currency);
   }
 
@@ -97,11 +114,11 @@ class ExService {
     }).catch((err) => { console.log(`getoutstandingorder ${err}`) });
   }
 
-  placeOrder(token, currency, type, price, amount){
+  placeOrder(token, currency, type, price, amount) {
 
-    this.api.placeOrder(token, currency, type, price, amount).then((res)=>{
+    this.api.placeOrder(token, currency, type, price, amount).then((res) => {
       console.log(`order placed: ${token}_${currency}, ${type}, ${price} ${amount}, ${Date.now()}, ${res.entrustId}`);
-    }).catch((err)=>{console.log(`placeorder ${err}`)});
+    }).catch((err) => { console.log(`placeorder ${err}`) });
   }
 
   cancelOrder(token, currency, orderId) {
