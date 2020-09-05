@@ -24,7 +24,7 @@
     "express-validator": "^5.2.0",
     "net": "^1.0.2",
     "numeral": "^2.0.6",
-    "open": "0.0.5",
+    "open": "6.0.0",
     "request": "^2.87.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.1",
