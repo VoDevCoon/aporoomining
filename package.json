@@ -28,7 +28,7 @@
     "request": "^2.87.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.1",
-    "webpack": "1.13.2",
+    "webpack": "5.74.0",
     "webpack-dev-middleware": "1.6.1",
     "webpack-hot-middleware": "2.12.2",
     "webpack-md5-hash": "0.0.5",
