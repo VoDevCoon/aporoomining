@@ -20,7 +20,7 @@
     "chalk": "^2.4.1",
     "eslint": "3.4.0",
     "eslint-plugin-import": "1.14.0",
-    "express": "4.16.3",
+    "express": "4.17.3",
     "express-validator": "^5.2.0",
     "net": "^1.0.2",
     "numeral": "^2.0.6",
